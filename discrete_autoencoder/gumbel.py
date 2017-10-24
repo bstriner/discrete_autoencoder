@@ -20,6 +20,12 @@ def gumbel_argmax(logits, srng, axis=-1):
     return T.argmax(logits + g, axis=axis)
 
 
+def sample_one_hot(logits, srng, axis=-1):
+    g = sample_gumbel(shape=logits.shape, srng=srng)
+    h = logits + g
+    return T.cast(T.eq(h, T.max(h, axis=axis, keepdims=True)), logits.dtype)
+
+
 def gumbel_softmax(logits, temperature, srng, hard=False):
     """Sample from the Gumbel-Softmax distribution and optionally discretize.
     Args:

@@ -3,72 +3,61 @@ from keras.optimizers import Adam
 from keras.regularizers import l2
 from theano.tensor.shared_randomstreams import RandomStreams
 
-from discrete_autoencoder.gumbel_autoencoder import GumbelAutoencoder
-from discrete_autoencoder.layers import Stack, DenseLayer, ActivationLayer, BNLayer, DropoutLayer
+from discrete_autoencoder.layers import Stack, DenseLayer, ActivationLayer, DropoutLayer
 from discrete_autoencoder.mnist import mnist_data
+from discrete_autoencoder.reinforce_autoencoder import ReinforceAutoencoder
 
 
 def activation(x):
     return T.nnet.relu(x, 0.2)
 
+
 def main():
     xtrain, xtest = mnist_data()
 
-    output_path = 'output/gumbel_autoencoder'
+    output_path = 'output/reinforce_autoencoder'
     epochs = 1000
     batches = 10000
     batch_size = 64
     test_batches = 5000
 
-    z_n = 30
+    z_n = 20
     z_k = 10
     srng = RandomStreams(123)
-    tau0 = 5.
-    tau_decay = 3e-5
-    tau_min = 0.1
     input_units = 28 * 28
-    hard = False
     opt = Adam(1e-3)
-    regularizer = l2(1e-5)
-    kl_weight = 1e-1
-    units = 1024
-    pz_units = 512
-    recurrent_pz = False
+    regularizer = l2(1e-4)
+    entropy_weight = 1.
+    units = 512
     encoder_net = Stack([
         DenseLayer(input_units, units),
-        #BNLayer(units),
+        # BNLayer(512),
         ActivationLayer(activation),
         DropoutLayer(0.5, srng=srng),
         DenseLayer(units, units),
-        #BNLayer(units),
+        # BNLayer(256),
         ActivationLayer(activation),
         DropoutLayer(0.5, srng=srng),
         DenseLayer(units, z_n * z_k)])
     decoder_net = Stack([
         DenseLayer(z_n * z_k, units),
-        #BNLayer(units),
+        # BNLayer(256),
         ActivationLayer(activation),
         DropoutLayer(0.5, srng=srng),
         DenseLayer(units, units),
-        #BNLayer(units),
+        # BNLayer(512),
         ActivationLayer(activation),
         DropoutLayer(0.5, srng=srng),
         DenseLayer(units, input_units)])
 
-    model = GumbelAutoencoder(z_n=z_n,
-                              z_k=z_k,
-                              opt=opt,
-                              encoder_net=encoder_net,
-                              decoder_net=decoder_net,
-                              regularizer=regularizer,
-                              srng=srng,
-                              pz_units=pz_units,
-                              recurrent_pz=recurrent_pz,
-                              tau0=tau0,
-                              tau_min=tau_min,
-                              tau_decay=tau_decay,
-                              kl_weight=kl_weight,
-                              hard=hard)
+    model = ReinforceAutoencoder(z_n=z_n,
+                                 z_k=z_k,
+                                 opt=opt,
+                                 encoder_net=encoder_net,
+                                 decoder_net=decoder_net,
+                                 regularizer=regularizer,
+                                 entropy_weight=entropy_weight,
+                                 srng=srng)
     model.train(output_path=output_path,
                 epochs=epochs,
                 batches=batches,

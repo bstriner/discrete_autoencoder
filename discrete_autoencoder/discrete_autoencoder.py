@@ -9,19 +9,21 @@ from .tensor_util import load_latest_weights, save_weights
 
 
 class DiscreteAutoencoder(object):
-    def __init__(self, train_headers, generate_function, train_function, val_function, weights):
+    def __init__(self, train_headers, generate_function, train_function, val_function, z_prior_function, weights):
         self.train_headers = train_headers
         self.generate_function = generate_function
         self.train_function = train_function
         self.val_function = val_function
+        self.z_prior_function = z_prior_function
         self.weights = weights
 
     def generate(self, output_path, n):
-        img = self.generate_function(n)
-        img = np.reshape(img, (n, 28, 28))
-        img = np.reshape(img, (n * 28, 28))
-        img = (img * 255.0).astype(np.uint8)
-        png.from_array(img, mode='L').save(output_path)
+        if self.generate_function:
+            img = self.generate_function(n)
+            img = np.reshape(img, (n, 28, 28))
+            img = np.reshape(img, (n * 28, 28))
+            img = (img * 255.0).astype(np.uint8)
+            png.from_array(img, mode='L').save(output_path)
 
     def train(self,
               output_path,
@@ -41,12 +43,12 @@ class DiscreteAutoencoder(object):
                 f.flush()
                 for epoch in tqdm(range(initial_epoch, epochs), desc='Training'):
                     it = tqdm(range(batches), desc='Epoch {}'.format(epoch))
-                    data = [[] for _ in range(4)]
+                    data = [[] for _ in range(len(self.train_headers))]
                     for _ in it:
                         idx = np.random.random_integers(low=0, high=xtrain.shape[0] - 1, size=(batch_size,))
                         x = xtrain[idx, :]
                         datum = self.train_function(x)
-                        for i in range(4):
+                        for i in range(len(self.train_headers)):
                             data[i].append(datum[i])
                         scalars = [np.asscalar(d) for d in datum]
                         desc = 'Epoch {}'.format(epoch)
@@ -66,4 +68,6 @@ class DiscreteAutoencoder(object):
                     f.flush()
 
                     self.generate('{}/generated-{:08d}.png'.format(output_path, epoch), n=20)
+                    if self.z_prior_function:
+                        np.savetxt('{}/pz-{:08d}.txt'.format(output_path, epoch), self.z_prior_function())
                     save_weights('{}/model-{:08d}.h5'.format(output_path, epoch), self.weights)
