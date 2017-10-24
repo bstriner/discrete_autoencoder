@@ -7,9 +7,11 @@ from discrete_autoencoder.gumbel_autoencoder import GumbelAutoencoder
 from discrete_autoencoder.layers import Stack, DenseLayer, ActivationLayer, BNLayer, DropoutLayer
 from discrete_autoencoder.mnist import mnist_data
 
+#leak = 0.2
+leak = 0.
 
 def activation(x):
-    return T.nnet.relu(x, 0.2)
+    return T.nnet.relu(x, leak)
 
 def main():
     xtrain, xtest = mnist_data()
@@ -20,7 +22,7 @@ def main():
     batch_size = 64
     test_batches = 5000
 
-    z_n = 30
+    z_n = 50
     z_k = 10
     srng = RandomStreams(123)
     tau0 = 5.
@@ -30,7 +32,7 @@ def main():
     hard = False
     opt = Adam(1e-3)
     regularizer = l2(1e-5)
-    kl_weight = 1e-1
+    kl_weight = 1e-2
     units = 1024
     pz_units = 512
     recurrent_pz = False

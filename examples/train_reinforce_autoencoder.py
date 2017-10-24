@@ -21,7 +21,7 @@ def main():
     batch_size = 64
     test_batches = 5000
 
-    z_n = 20
+    z_n = 30
     z_k = 10
     srng = RandomStreams(123)
     input_units = 28 * 28

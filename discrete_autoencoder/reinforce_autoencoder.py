@@ -96,7 +96,7 @@ class ReinforceAutoencoder(DiscreteAutoencoder):
         # Generation
         input_n = T.iscalar()
         logitrep = T.repeat(T.reshape(self.z_prior_weight, (1, z_n, z_k)), repeats=input_n, axis=0)
-        zsamp = sample_one_hot(logitrep)
+        zsamp = sample_one_hot(logitrep, srng=srng)
         xgen, _ = self.decode(T.reshape(zsamp, (input_n, -1)), validation=True)
         rnd = srng.uniform(size=xgen.shape, low=0., high=1., dtype='float32')
         xsamp = T.cast(T.gt(xgen, rnd), 'int32')
