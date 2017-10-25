@@ -7,7 +7,7 @@ from .discrete_autoencoder import DiscreteAutoencoder
 from .gumbel import sample_one_hot
 from .initializers import uniform_initializer
 from .tensor_util import softmax_nd
-
+from .tensor_util import tensor_one_hot
 
 class ReinforceAutoencoder(DiscreteAutoencoder):
     def __init__(self,
@@ -123,7 +123,7 @@ class ReinforceAutoencoder(DiscreteAutoencoder):
         logits = T.reshape(h, (n, self.z_n, self.z_k))
         pz = softmax_nd(logits)
         if validation:
-            z = T.eq(logits, T.max(logits, axis=-1, keepdims=True))
+            z = tensor_one_hot(T.argmax(logits, axis=-1), logits.shape[-1])
         else:
             z = sample_one_hot(logits=logits, srng=self.srng)  # (n, z_n, z_k)
         return pz, z, updates

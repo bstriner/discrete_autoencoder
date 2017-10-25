@@ -1,11 +1,11 @@
 import theano
 import theano.tensor as T
 
-from .tensor_util import softmax_nd
+from .tensor_util import softmax_nd, tensor_one_hot
 
 
 def sample_gumbel(shape, srng, eps=1e-9):
-    rnd = srng.uniform(size=shape, low=0., high=1., dtype='float32')
+    rnd = srng.uniform(size=shape, low=eps, high=1.-eps, dtype='float32')
     return -T.log(eps - T.log(eps + rnd))
 
 
@@ -23,10 +23,10 @@ def gumbel_argmax(logits, srng, axis=-1):
 def sample_one_hot(logits, srng, axis=-1):
     g = sample_gumbel(shape=logits.shape, srng=srng)
     h = logits + g
-    return T.cast(T.eq(h, T.max(h, axis=axis, keepdims=True)), logits.dtype)
+    return tensor_one_hot(T.argmax(h, axis=axis), h.shape[axis])
 
 
-def gumbel_softmax(logits, temperature, srng, hard=False):
+def gumbel_softmax(logits, temperature, srng, hard=False, axis=-1):
     """Sample from the Gumbel-Softmax distribution and optionally discretize.
     Args:
       logits: [batch_size, n_class] unnormalized log-probs
@@ -39,6 +39,6 @@ def gumbel_softmax(logits, temperature, srng, hard=False):
     """
     y = gumbel_softmax_sample(logits, temperature, srng=srng)
     if hard:
-        y_hard = T.cast(T.eq(y, T.max(y, axis=-1, keepdims=True)), y.dtype)
+        y_hard = tensor_one_hot(T.argmax(y, axis=axis), y.shape[axis])
         y = theano.gradient.zero_grad(y_hard - y) + y
     return y

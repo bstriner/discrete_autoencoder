@@ -10,8 +10,11 @@ class DropoutLayer(Layer):
         super(DropoutLayer, self).__init__(params=params, non_trainable_weights=non_trainable_weights)
 
     def call(self, x):
-        rnd = self.srng.binomial(n=1, p=1. - self.rate, size=x.shape, dtype='float32')
-        out = (x * rnd) / (1. - self.rate)
+        if self.rate > 0:
+            rnd = self.srng.binomial(n=1, p=1. - self.rate, size=x.shape, dtype='float32')
+            out = (x * rnd) / (1. - self.rate)
+        else:
+            out = x
         return out, []
 
     def call_validation(self, x):

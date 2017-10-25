@@ -50,12 +50,25 @@ def leaky_relu(x):
     return T.nnet.relu(x, 0.2)
 
 
+"""
 def tensor_one_hot(x, k):
     assert x.ndim == 1
     assert x.dtype == 'int32' or x.dtype == 'int64'
     ret = T.zeros((x.shape[0], k), dtype='float32')
     idx = T.arange(x.shape[0], dtype='int32')
     ret = T.set_subtensor(ret[idx, x], 1.)
+    return ret
+"""
+
+
+def tensor_one_hot(x, k, dtype='float32'):
+    assert x.dtype == 'int32' or x.dtype == 'int64'
+    shape = tuple(x.shape) + (k,)
+    ret = T.zeros(shape, dtype=dtype)
+    s1 = tuple(slice(dim) for dim in x.shape)
+    mgrid = T.mgrid[s1]
+    s2 = tuple(mgrid) + (x,)
+    ret = T.set_subtensor(ret[s2], 1)
     return ret
 
 

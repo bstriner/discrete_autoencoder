@@ -9,8 +9,16 @@ from .tensor_util import load_latest_weights, save_weights
 
 
 class DiscreteAutoencoder(object):
-    def __init__(self, train_headers, generate_function, train_function, val_function, z_prior_function, weights):
+    def __init__(self,
+                 train_headers,
+                 val_headers,
+                 generate_function,
+                 train_function,
+                 val_function,
+                 z_prior_function,
+                 weights):
         self.train_headers = train_headers
+        self.val_headers = val_headers
         self.generate_function = generate_function
         self.train_function = train_function
         self.val_function = val_function
@@ -37,9 +45,11 @@ class DiscreteAutoencoder(object):
             os.makedirs(output_path)
         initial_epoch = load_latest_weights(output_path, r'model-(\d+).h5', self.weights)
         if initial_epoch < epochs:
+            with open(os.path.join(output_path,'summary.txt'), 'w') as f:
+                f.write(str(self)+"\n")
             with open(os.path.join(output_path, 'history.csv'), 'ab') as f:
                 w = csv.writer(f)
-                w.writerow(['Epoch'] + self.train_headers + ['Val NLL'])
+                w.writerow(['Epoch'] + self.train_headers + self.val_headers)
                 f.flush()
                 for epoch in tqdm(range(initial_epoch, epochs), desc='Training'):
                     it = tqdm(range(batches), desc='Epoch {}'.format(epoch))
@@ -56,15 +66,17 @@ class DiscreteAutoencoder(object):
                             desc += ' {} {:.04f}'.format(d, v)
                         it.desc = desc
 
-                    val = []
+                    val_data = [[] for _ in range(len(self.val_headers))]
                     for _ in tqdm(range(test_batches), desc='Validating Epoch {}'.format(epoch)):
                         idx = np.random.random_integers(low=0, high=xtest.shape[0] - 1, size=(batch_size,))
                         x = xtest[idx, :]
-                        val.append(self.val_function(x))
-                    val_nll = np.asscalar(np.mean(val))
+                        val_datum = self.val_function(x)
+                        for i in range(len(self.val_headers)):
+                            val_data[i].append(val_datum[i])
 
                     data = [np.asscalar(np.mean(d)) for d in data]
-                    w.writerow([epoch] + data + [val_nll])
+                    val_means = [np.asscalar(np.mean(d)) for d in val_data]
+                    w.writerow([epoch] + data + val_means)
                     f.flush()
 
                     self.generate('{}/generated-{:08d}.png'.format(output_path, epoch), n=20)

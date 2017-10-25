@@ -16,7 +16,7 @@ def activation(x):
 def main():
     xtrain, xtest = mnist_data()
 
-    output_path = 'output/gumbel_autoencoder'
+    output_path = 'output/gumbel_autoencoder_hard'
     epochs = 1000
     batches = 10000
     batch_size = 128
@@ -29,7 +29,7 @@ def main():
     tau_decay = 3e-6
     tau_min = 0.1
     input_units = 28 * 28
-    hard = False
+    hard = True
     opt = Adam(3e-4)
     regularizer = l2(1e-5)
     kl_weight = 1e-3
@@ -46,6 +46,10 @@ def main():
         #BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
+        DenseLayer(units, units),
+        # BNLayer(units),
+        ActivationLayer(activation),
+        DropoutLayer(dropout, srng=srng),
         DenseLayer(units, z_n * z_k)])
     decoder_net = Stack([
         DenseLayer(z_n * z_k, units),
@@ -54,6 +58,10 @@ def main():
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
         #BNLayer(units),
+        ActivationLayer(activation),
+        DropoutLayer(dropout, srng=srng),
+        DenseLayer(units, units),
+        # BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, input_units)])

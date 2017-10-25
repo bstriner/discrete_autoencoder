@@ -25,29 +25,30 @@ def main():
     z_k = 10
     srng = RandomStreams(123)
     input_units = 28 * 28
-    opt = Adam(1e-3)
+    opt = Adam(3e-4)
     regularizer = l2(1e-4)
     entropy_weight = 1.
     units = 512
+    dropout = 0.5
     encoder_net = Stack([
         DenseLayer(input_units, units),
         # BNLayer(512),
         ActivationLayer(activation),
-        DropoutLayer(0.5, srng=srng),
+        DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
         # BNLayer(256),
         ActivationLayer(activation),
-        DropoutLayer(0.5, srng=srng),
+        DropoutLayer(dropout, srng=srng),
         DenseLayer(units, z_n * z_k)])
     decoder_net = Stack([
         DenseLayer(z_n * z_k, units),
         # BNLayer(256),
         ActivationLayer(activation),
-        DropoutLayer(0.5, srng=srng),
+        DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
         # BNLayer(512),
         ActivationLayer(activation),
-        DropoutLayer(0.5, srng=srng),
+        DropoutLayer(dropout, srng=srng),
         DenseLayer(units, input_units)])
 
     model = ReinforceAutoencoder(z_n=z_n,

@@ -1,4 +1,3 @@
-
 class Layer(object):
     def __init__(self, params, non_trainable_weights):
         self.params = params
