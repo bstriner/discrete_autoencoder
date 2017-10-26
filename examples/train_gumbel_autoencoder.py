@@ -22,8 +22,8 @@ def main():
     batch_size = 128
     test_batches = 5000
 
-    z_n = 1
-    z_k = 1024
+    z_n = 5
+    z_k = 8
     srng = RandomStreams(123)
     tau0 = 1.
     tau_decay = 3e-6
