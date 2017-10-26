@@ -134,6 +134,11 @@ class GumbelAutoencoder(DiscreteAutoencoder):
             generate_function = theano.function([input_n], xsamp)
             z_prior_function = theano.function([], self.z_prior)
 
+        # Autoencode
+        rnd = srng.uniform(low=0., high=1., dtype='float32', size=val_xpred.shape)
+        xout = T.cast(T.gt(val_xpred, rnd), dtype='float32')
+        autoencode_function = theano.function([input_x], [input_x_binary, xout])
+
         super(GumbelAutoencoder, self).__init__(
             train_headers=train_headers,
             val_headers=val_headers,
@@ -141,11 +146,12 @@ class GumbelAutoencoder(DiscreteAutoencoder):
             generate_function=generate_function,
             val_function=val_function,
             z_prior_function=z_prior_function,
+            autoencode_function=autoencode_function,
             weights=weights
         )
 
     def __str__(self):
-        return "{} z_n={}, z_k={}".format(self.__class__.__name__, self.z_n, self.z_k)
+        return "{} z_n={}, z_k={}, hard={}".format(self.__class__.__name__, self.z_n, self.z_k, self.hard)
 
     def encode(self, x, validation=False):
         assert x is not None

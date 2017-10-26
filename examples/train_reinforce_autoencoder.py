@@ -27,12 +27,16 @@ def main():
     input_units = 28 * 28
     opt = Adam(3e-4)
     regularizer = l2(1e-4)
-    entropy_weight = 1.
+    entropy_weight = 1e-2
     units = 512
-    dropout = 0.5
+    dropout = 0.
     encoder_net = Stack([
         DenseLayer(input_units, units),
         # BNLayer(512),
+        ActivationLayer(activation),
+        DropoutLayer(dropout, srng=srng),
+        DenseLayer(units, units),
+        # BNLayer(256),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
@@ -49,6 +53,11 @@ def main():
         # BNLayer(512),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
+        DenseLayer(units, units),
+        # BNLayer(256),
+        ActivationLayer(activation),
+        DropoutLayer(dropout, srng=srng),
+
         DenseLayer(units, input_units)])
 
     model = ReinforceAutoencoder(z_n=z_n,

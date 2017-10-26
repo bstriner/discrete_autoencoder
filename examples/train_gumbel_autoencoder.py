@@ -22,8 +22,8 @@ def main():
     batch_size = 128
     test_batches = 5000
 
-    z_n = 30
-    z_k = 10
+    z_n = 1
+    z_k = 1024
     srng = RandomStreams(123)
     tau0 = 1.
     tau_decay = 3e-6
@@ -36,7 +36,7 @@ def main():
     units = 512
     pz_units = 512
     recurrent_pz = False
-    dropout = 0.5
+    dropout = 0.0
     encoder_net = Stack([
         DenseLayer(input_units, units),
         #BNLayer(units),

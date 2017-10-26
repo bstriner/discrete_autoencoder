@@ -10,26 +10,40 @@ from .tensor_util import load_latest_weights, save_weights
 
 class DiscreteAutoencoder(object):
     def __init__(self,
+                 weights,
                  train_headers,
                  val_headers,
-                 generate_function,
-                 train_function,
-                 val_function,
-                 z_prior_function,
-                 weights):
+                 generate_function=None,
+                 train_function=None,
+                 val_function=None,
+                 z_prior_function=None,
+                 autoencode_function=None):
+        self.weights = weights
         self.train_headers = train_headers
         self.val_headers = val_headers
         self.generate_function = generate_function
         self.train_function = train_function
         self.val_function = val_function
         self.z_prior_function = z_prior_function
-        self.weights = weights
+        self.autoencode_function = autoencode_function
 
     def generate(self, output_path, n):
         if self.generate_function:
             img = self.generate_function(n)
             img = np.reshape(img, (n, 28, 28))
             img = np.reshape(img, (n * 28, 28))
+            img = (img * 255.0).astype(np.uint8)
+            png.from_array(img, mode='L').save(output_path)
+
+    def autoencode(self, output_path, n, x):
+        if self.autoencode_function:
+            sel = np.random.random_integers(low=0, high=x.shape[0], size=(n,)) # (n, units)
+            xsel = x[sel,:] # (n, input)
+            img1, img2 = self.autoencode_function(xsel) #(n, input)
+            img1 = np.reshape(img1, (-1, 28, 28))
+            img2 = np.reshape(img2, (-1, 28, 28))
+            img = np.concatenate((img1, img2), axis=2)
+            img = np.reshape(img, (-1, 28*2))
             img = (img * 255.0).astype(np.uint8)
             png.from_array(img, mode='L').save(output_path)
 
@@ -80,6 +94,7 @@ class DiscreteAutoencoder(object):
                     f.flush()
 
                     self.generate('{}/generated-{:08d}.png'.format(output_path, epoch), n=20)
+                    self.autoencode('{}/autoencoded-{:08d}.png'.format(output_path, epoch), n=20, x=xtest)
                     if self.z_prior_function:
                         np.savetxt('{}/pz-{:08d}.txt'.format(output_path, epoch), self.z_prior_function())
                     save_weights('{}/model-{:08d}.h5'.format(output_path, epoch), self.weights)
