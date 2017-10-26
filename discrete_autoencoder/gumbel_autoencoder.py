@@ -188,14 +188,19 @@ class GumbelAutoencoder(DiscreteAutoencoder):
             pzt = T.sum(pz * z, axis=2)  # (n, z_k)
             nll_z = -T.sum(T.log(self.ceps + pzt), axis=1)  # (n,)
             # v2
-            #nll_z = -T.sum(z*T.log(self.ceps+pz), axis=(1,2))
+            # nll_z = -T.sum(z*T.log(self.ceps+pz), axis=(1,2))
             return nll_z  # (n,)
         else:
             # Old version
-            # nll_z_prior = -T.log(self.ceps + self.z_prior)  # (z_n, z_k)
-            # nll_z = T.tensordot(z, nll_z_prior, axes=((1, 2), (0, 1)))  # (n,)
-            h = T.sum(z * (self.z_prior.dimshuffle(('x', 0, 1))), axis=2)  # (n, z_n)
-            nll_z = -T.sum(T.log(self.ceps + h), axis=1)  # (n,)
+            z_mode = 0
+            if z_mode == 0:
+                # nll_z_prior = -T.log(self.ceps + self.z_prior)  # (z_n, z_k)
+                # nll_z = T.tensordot(z, nll_z_prior, axes=((1, 2), (0, 1)))  # (n,)
+                nll_z_prior = -T.log(self.ceps + self.z_prior).dimshuffle(('x', 0, 1))  # (z_n, z_k)
+                nll_z = T.sum(z * nll_z_prior, axis=(1, 2))  # (n,)
+            else:
+                h = T.sum(z * (self.z_prior.dimshuffle(('x', 0, 1))), axis=2)  # (n, z_n)
+                nll_z = -T.sum(T.log(self.ceps + h), axis=1)  # (n,)
             return nll_z  # (n,)
 
     def decode(self, z, validation=False):

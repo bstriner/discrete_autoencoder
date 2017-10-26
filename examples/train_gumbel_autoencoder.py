@@ -22,8 +22,8 @@ def main():
     batch_size = 128
     test_batches = 5000
 
-    z_n = 5
-    z_k = 8
+    z_n = 6
+    z_k = 10
     srng = RandomStreams(123)
     tau0 = 1.
     tau_decay = 3e-6
@@ -33,27 +33,35 @@ def main():
     opt = Adam(3e-4)
     regularizer = l2(1e-5)
     kl_weight = 1e-3
-    units = 512
+    units = 1024
     pz_units = 512
     recurrent_pz = False
-    dropout = 0.0
+    dropout = 0.5
     encoder_net = Stack([
         DenseLayer(input_units, units),
-        #BNLayer(units),
+        BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
-        #BNLayer(units),
+        BNLayer(units),
+        ActivationLayer(activation),
+        DropoutLayer(dropout, srng=srng),
+        DenseLayer(units, units),
+        BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, z_n * z_k)])
     decoder_net = Stack([
         DenseLayer(z_n * z_k, units),
-        #BNLayer(units),
+        BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
-        #BNLayer(units),
+        BNLayer(units),
+        ActivationLayer(activation),
+        DropoutLayer(dropout, srng=srng),
+        DenseLayer(units, units),
+        BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, input_units)])
