@@ -22,7 +22,7 @@ class GumbelAutoencoder(DiscreteAutoencoder):
                  hard=True,
                  pz_units=512,
                  tau0=5.,
-                 iw=False,
+                 learn_pz=False,
                  tau_min=0.25,
                  tau_decay=1e-6,
                  kl_weight=1.,
@@ -32,14 +32,14 @@ class GumbelAutoencoder(DiscreteAutoencoder):
                  eps=1e-7):
         self.z_n = z_n
         self.z_k = z_k
-        self.iw=iw
+        self.iw = iw
         self.encoder_net = encoder_net
         self.decoder_net = decoder_net
         self.srng = srng
         self.hard = hard
         self.recurrent_pz = recurrent_pz
         self.ceps = T.constant(eps, name='epsilon', dtype='float32')
-        self.pz_rate=pz_rate
+        self.pz_rate = pz_rate
         # Temperature
         self.iteration = K.variable(0, dtype='int32', name='iteration')
         iter_updates = [(self.iteration, self.iteration + 1)]
@@ -62,8 +62,8 @@ class GumbelAutoencoder(DiscreteAutoencoder):
             pz_params = self.pz_net.params
             pz_non_trainable_weights = self.pz_net.non_trainable_weights
         else:
-            self.z_prior_weight = K.variable(initializer((z_n, z_k))/pz_rate, name='z_prior_weight')
-            self.z_prior = T.nnet.softmax(self.z_prior_weight*pz_rate)  # (z_n, z_k)
+            self.z_prior_weight = K.variable(initializer((z_n, z_k)) / pz_rate, name='z_prior_weight')
+            self.z_prior = T.nnet.softmax(self.z_prior_weight * pz_rate)  # (z_n, z_k)
             pz_params = [self.z_prior_weight]
             pz_non_trainable_weights = []
 
@@ -88,13 +88,12 @@ class GumbelAutoencoder(DiscreteAutoencoder):
         mean_nll_x = T.mean(nll_x)
 
         # IW NLL
-        lpz = T.log(self.ceps+pz)
-        q = T.exp(T.sum(lpz*z, axis=(1,2)))
-        #q = T.sum(pz*z, axis=2) #(n, z_n)
-        #q = T.prod(q, axis=1) # (n,)
-        p = T.power(1./z_k, z_n) # (n,)
-        iwnll_part = (p/(q+self.ceps))*nll_x # (n,)
-        iwnll = T.mean(iwnll_part) # scalar
+        # lpz = T.log(self.ceps+pz)
+        # q = T.exp(T.sum(lpz*z, axis=(1,2)))
+        q = T.sum(pz * z, axis=2)  # (n, z_n)
+        nllq = -T.sum(T.log(self.ceps + q), axis=1)  # (n,)
+        iwnll_part = nll_part - nllq  # (n,)
+        iwnll = T.mean(iwnll_part)  # scalar
 
         # Validation NLL
         val_pz, val_z, _ = self.encode(input_x_binary, validation=True)
@@ -107,11 +106,10 @@ class GumbelAutoencoder(DiscreteAutoencoder):
         val_mean_nll_x = T.mean(val_nll_x)
 
         # Val IW NLL
-        q = T.sum(val_pz*val_z, axis=2) #(n, z_n)
-        q = T.prod(q, axis=1) # (n,)
-        p = T.exp(-val_nll_z) # (n,)
-        val_iwnll_part = (p/(q+self.ceps))*val_nll_x # (n,)
-        val_iwnll = T.mean(val_iwnll_part) # scalar
+        val_q = T.sum(val_pz * val_z, axis=2)  # (n, z_n)
+        val_nll_q = -T.sum(T.log(self.ceps + val_q), axis=1)  # (n,)
+        val_iwnll_part = val_nll_part - val_nll_q
+        val_iwnll = T.mean(val_iwnll_part)  # scalar
 
         # Validation function
         val_function = theano.function([input_x], [val_mean_nll_z, val_mean_nll_x, val_nll, val_iwnll])
@@ -125,7 +123,7 @@ class GumbelAutoencoder(DiscreteAutoencoder):
                 reg_loss += regularizer(p)
 
         # KL
-        kl_part = T.sum(pz * (T.log(eps + pz) - T.log(1. / z_k)), axis=(1, 2))  # (n,)
+        kl_part = T.sum(pz * (T.log(self.ceps + pz) - T.log(1. / z_k)), axis=(1, 2))  # (n,)
         kl = kl_weight * T.mean(kl_part)
 
         # Training
@@ -133,7 +131,7 @@ class GumbelAutoencoder(DiscreteAutoencoder):
             loss = iwnll
         else:
             loss = nll
-        loss+= reg_loss + kl
+        loss += reg_loss + kl
         train_updates = opt.get_updates(loss, self.params)
         train_function = theano.function([input_x], [mean_nll_z, mean_nll_x, nll, reg_loss, kl, iwnll, loss, self.tau],
                                          updates=train_updates + iter_updates + decode_updates + encode_updates)
@@ -151,18 +149,18 @@ class GumbelAutoencoder(DiscreteAutoencoder):
             z_prior_function = None
         else:
             input_n = T.iscalar()
-            logitrep = T.repeat(T.reshape(self.z_prior_weight*pz_rate, (1, z_n, z_k)), repeats=input_n, axis=0)
+            logitrep = T.repeat(T.reshape(self.z_prior_weight * pz_rate, (1, z_n, z_k)), repeats=input_n, axis=0)
             zsamp = sample_one_hot(logits=logitrep, srng=srng)
             xgen, _ = self.decode(zsamp, validation=True)
-            #rnd = srng.uniform(size=xgen.shape, low=0., high=1., dtype='float32')
-            #xsamp = T.cast(T.gt(xgen, rnd), 'int32')
-            generate_function = theano.function([input_n], xgen) # xsamp for binarized
+            # rnd = srng.uniform(size=xgen.shape, low=0., high=1., dtype='float32')
+            # xsamp = T.cast(T.gt(xgen, rnd), 'int32')
+            generate_function = theano.function([input_n], xgen)  # xsamp for binarized
             z_prior_function = theano.function([], self.z_prior)
 
         # Autoencode
-        #rnd = srng.uniform(low=0., high=1., dtype='float32', size=val_xpred.shape)
-        #xout = T.cast(T.gt(val_xpred, rnd), dtype='float32')
-        autoencode_function = theano.function([input_x], [input_x_binary, val_xpred]) # xout for binarized
+        # rnd = srng.uniform(low=0., high=1., dtype='float32', size=val_xpred.shape)
+        # xout = T.cast(T.gt(val_xpred, rnd), dtype='float32')
+        autoencode_function = theano.function([input_x], [input_x_binary, val_xpred])  # xout for binarized
 
         super(GumbelAutoencoder, self).__init__(
             train_headers=train_headers,
@@ -177,10 +175,10 @@ class GumbelAutoencoder(DiscreteAutoencoder):
 
     def __str__(self):
         ret = "{} z_n={}, z_k={}, hard={}, iw={}".format(self.__class__.__name__,
-                                                          self.z_n,
-                                                          self.z_k,
-                                                          self.hard,
-                                                          self.iw)
+                                                         self.z_n,
+                                                         self.z_k,
+                                                         self.hard,
+                                                         self.iw)
         ret += "\nencoder_net: [\n{}\n]".format(str(self.encoder_net))
         ret += "\ndecoder_net: [\n{}\n]".format(str(self.decoder_net))
         return ret
@@ -215,7 +213,7 @@ class GumbelAutoencoder(DiscreteAutoencoder):
             # zs = theano.gradient.zero_grad(zs)
             logits, pz_updates = self.pz_net.call(zs)
             # logits: (n, z_n, z_k)
-            pz = softmax_nd(logits*self.pz_rate)
+            pz = softmax_nd(logits * self.pz_rate)
             # v1
             z_mode = 1
             if z_mode == 0:
