@@ -22,7 +22,7 @@ def main():
     batch_size = 128
     test_batches = 5000
 
-    z_n = 50
+    z_n = 25
     z_k = 2
     srng = RandomStreams(123)
     tau0 = 1.
