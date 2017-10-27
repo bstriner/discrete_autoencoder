@@ -16,14 +16,14 @@ def activation(x):
 def main():
     xtrain, xtest = mnist_data()
 
-    output_path = 'output/gumbel_autoencoder'
+    output_path = 'output/gumbel_autoencoder_recurrent'
     epochs = 1000
     batches = 10000
     batch_size = 128
     test_batches = 5000
 
-    z_n = 50
-    z_k = 2
+    z_n = 20
+    z_k = 10
     srng = RandomStreams(123)
     tau0 = 1.
     tau_decay = 3e-6
@@ -35,27 +35,27 @@ def main():
     kl_weight = 1e-3
     units = 512
     pz_units = 512
-    pz_rate = 1e-2
-    recurrent_pz = False
+    pz_rate = 1e-3
+    recurrent_pz = True
     dropout = 0.
     iw = False
     encoder_net = Stack([
         DenseLayer(input_units, units),
-        BNLayer(units),
+        #BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
-        BNLayer(units),
+        #BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, z_n * z_k)])
     decoder_net = Stack([
         DenseLayer(z_n * z_k, units),
-        BNLayer(units),
+        #BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
-        BNLayer(units),
+        #BNLayer(units),
         ActivationLayer(activation),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, input_units)])

@@ -7,7 +7,7 @@ class Stack(object):
         self.params = list(itertools.chain.from_iterable(layer.params for layer in self.layers))
         self.non_trainable_weights = list(
             itertools.chain.from_iterable(layer.non_trainable_weights for layer in self.layers))
-        
+
     def call(self, x):
         out = x
         updates = []
@@ -21,3 +21,6 @@ class Stack(object):
         for layer in self.layers:
             out = layer.call_validation(out)
         return out
+
+    def __str__(self):
+        return "\n".join(str(layer) for layer in self.layers)

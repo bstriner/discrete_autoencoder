@@ -37,7 +37,7 @@ class DiscreteAutoencoder(object):
 
     def autoencode(self, output_path, n, x):
         if self.autoencode_function:
-            sel = np.random.random_integers(low=0, high=x.shape[0], size=(n,)) # (n, units)
+            sel = np.random.random_integers(low=0, high=x.shape[0]-1, size=(n,)) # (n, units)
             xsel = x[sel,:] # (n, input)
             img1, img2 = self.autoencode_function(xsel) #(n, input)
             img1 = np.reshape(img1, (-1, 28, 28))
