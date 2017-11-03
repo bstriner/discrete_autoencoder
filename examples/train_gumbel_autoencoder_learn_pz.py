@@ -19,14 +19,14 @@ def activation(x):
 def main():
     xtrain, xtest = mnist_data()
 
-    output_path = 'output/gumbel_autoencoder'
+    output_path = 'output/gumbel_autoencoder_learn_pz'
     epochs = 1000
     batches = 10000
     batch_size = 128
     test_batches = 5000
 
-    learn_pz = False
-    use_mean = False
+    learn_pz = True
+    use_mean = True
     z_n = 30
     z_k = 10
     srng = RandomStreams(123)
@@ -37,34 +37,26 @@ def main():
     hard = False
     opt = Adam(1e-3)
     regularizer = l2(1e-5)
-    units = 1024
-    dropout = 0.5
+    units = 256
+    dropout = 0.
     encoder_net = Stack([
         DenseLayer(input_units, units),
+        #BNLayer(units),
         ActivationLayer(activation),
-        BNLayer(units),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
+        #BNLayer(units),
         ActivationLayer(activation),
-        BNLayer(units),
-        DropoutLayer(dropout, srng=srng),
-        DenseLayer(units, units),
-        ActivationLayer(activation),
-        BNLayer(units),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, z_n * z_k)])
     decoder_net = Stack([
         DenseLayer(z_n * z_k, units),
+        #BNLayer(units),
         ActivationLayer(activation),
-        BNLayer(units),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, units),
+        #BNLayer(units),
         ActivationLayer(activation),
-        BNLayer(units),
-        DropoutLayer(dropout, srng=srng),
-        DenseLayer(units, units),
-        ActivationLayer(activation),
-        BNLayer(units),
         DropoutLayer(dropout, srng=srng),
         DenseLayer(units, input_units)])
 

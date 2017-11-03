@@ -8,7 +8,7 @@ from tqdm import tqdm
 from .tensor_util import load_latest_weights, save_weights
 
 
-class DiscreteAutoencoder(object):
+class Autoencoder(object):
     def __init__(self,
                  weights,
                  train_headers,
@@ -16,7 +16,6 @@ class DiscreteAutoencoder(object):
                  generate_function=None,
                  train_function=None,
                  val_function=None,
-                 z_prior_function=None,
                  autoencode_function=None):
         self.weights = weights
         self.train_headers = train_headers
@@ -24,7 +23,6 @@ class DiscreteAutoencoder(object):
         self.generate_function = generate_function
         self.train_function = train_function
         self.val_function = val_function
-        self.z_prior_function = z_prior_function
         self.autoencode_function = autoencode_function
 
     def generate(self, output_path, n):
@@ -97,6 +95,4 @@ class DiscreteAutoencoder(object):
     def on_epoch_end(self, output_path, epoch, xtest):
         self.generate('{}/generated-{:08d}.png'.format(output_path, epoch), n=20)
         self.autoencode('{}/autoencoded-{:08d}.png'.format(output_path, epoch), n=20, x=xtest)
-        if self.z_prior_function:
-            np.savetxt('{}/pz-{:08d}.txt'.format(output_path, epoch), self.z_prior_function())
         save_weights('{}/model-{:08d}.h5'.format(output_path, epoch), self.weights)

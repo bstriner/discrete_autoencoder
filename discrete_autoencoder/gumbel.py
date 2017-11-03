@@ -5,7 +5,7 @@ from .tensor_util import softmax_nd, tensor_one_hot
 
 
 def sample_gumbel(shape, srng, eps=1e-9):
-    rnd = srng.uniform(size=shape, low=eps, high=1.-eps, dtype='float32')
+    rnd = srng.uniform(size=shape, low=eps, high=1. - eps, dtype='float32')
     return -T.log(eps - T.log(eps + rnd))
 
 
