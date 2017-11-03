@@ -56,7 +56,6 @@ def main():
                                        tau0=tau0,
                                        tau_min=tau_min,
                                        tau_decay=tau_decay,
-                                       learn_pz=learn_pz,
                                        iw=iw,
                                        iw_samples=iw_samples,
                                        val_iw=val_iw,
